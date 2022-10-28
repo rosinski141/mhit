@@ -24,6 +24,8 @@ jobs:
       run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
     - name: Generate key
       run: php artisan key:generate
+    - name: NPM instal
+      run: npm install
     - name: Run npm build
       run: npm run build
     - name: Directory Permissions
