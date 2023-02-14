@@ -6,4 +6,6 @@
 .players {
     width: 55px;
     height: 30px;
+    padding-left: 11px;
+    padding-right: 11px;
 }
