@@ -8,7 +8,7 @@
         <div style ="width:200px" class="col-2">
         </div>
         <div style ="width:200px" class="col-1">
-            <img style="width:170px;height:150px" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/profileicon/{{$user->profileIconId}}.png"> </img>
+            <img style="width:170px;height:170px" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/profileicon/{{$user->profileIconId}}.png"> </img>
             <h2>{{$user->name}}</h2>
         </div>
     </div>

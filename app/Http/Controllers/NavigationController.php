@@ -22,9 +22,34 @@ class NavigationController extends Controller
         $flex_rank = "";
         $solo_rank = "";
         $start_count = 0;
-
-        if($request->accountServer == "EUW") {
-            $stream = $client->get('https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-name/' . $request->username . '?api_key=' . $api_key);
+        $region = "";
+        $platform = "";
+    
+        switch($request->accountServer) {
+            case "EUW":
+                $platform = "euw1";
+                $region = "europe";
+                break;
+            case "NA":
+                $platform = "na1";
+                $region = "americas";
+                break;
+            case "OCE":
+                $platform = "oc1";
+                $region = "sea";
+                break;
+            case "BR":
+                $platform = "br1";
+                $region = "americas";
+                break;
+            case "KR":
+                $platform = "kr";
+                $region = "asia";
+                break;
+        }
+    
+        if($platform && $region) {
+            $stream = $client->get('https://' . $platform . '.api.riotgames.com/lol/summoner/v4/summoners/by-name/' . $request->username . '?api_key=' . $api_key);
         
             
             $userdata = $stream->getBody()->getContents(); 
@@ -32,7 +57,7 @@ class NavigationController extends Controller
             $userid = json_decode($userdata)->id;
             $puuid = json_decode($userdata)->puuid;
             $user = json_decode($userdata);
-            $stream = $client->get('https://euw1.api.riotgames.com/lol/league/v4/entries/by-summoner/' . $userid . '?api_key=' . $api_key);
+            $stream = $client->get('https://' . $platform . '.api.riotgames.com/lol/league/v4/entries/by-summoner/' . $userid . '?api_key=' . $api_key);
             $ranks = json_decode($data = $stream->getBody()->getContents());
         
             $emblems_array = File::files(public_path() . "/ranked-emblems/");
@@ -60,14 +85,14 @@ class NavigationController extends Controller
         
             $emblem_path = "." . str_replace(public_path(), "", $emblem_path);
             $flex_emblem_path = "." . str_replace(public_path(), "", $flex_emblem_path);
-
-            $stream = $client->get('https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/'  . $puuid . '/ids?start='.  $start_count . '&count=10&api_key=' . $api_key);
+    
+            $stream = $client->get('https://' . $region . '.api.riotgames.com/lol/match/v5/matches/by-puuid/'  . $puuid . '/ids?start='.  $start_count . '&count=10&api_key=' . $api_key);
             $matches = json_decode($data = $stream->getBody()->getContents());
             
             $match_data = [];
             foreach($matches as $match) {
-                $stream =  $client->get('https://europe.api.riotgames.com/lol/match/v5/matches/'  . $match . '?api_key=' . $api_key);
-
+                $stream =  $client->get('https://' . $region . '.api.riotgames.com/lol/match/v5/matches/'  . $match . '?api_key=' . $api_key);
+    
                 
                 $data = json_decode($stream->getBody()->getContents());     
             
@@ -87,7 +112,7 @@ class NavigationController extends Controller
                     $participant->items = $items;
                     $items = [];
                 }      
-
+    
                 $match_data[] = $data->info; 
             
             }

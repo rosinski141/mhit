@@ -67,7 +67,6 @@ RUN apt-get install -y autoconf pkg-config libssl-dev
 RUN pecl install mongodb
 RUN echo "extension=mongodb.so" >> /etc/php/8.1/cli/conf.d/mongodb.ini
 
-
 EXPOSE 8000
 
 ENTRYPOINT ["start-container"]
