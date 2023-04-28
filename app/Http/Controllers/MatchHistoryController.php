@@ -23,8 +23,9 @@ class MatchHistoryController extends Controller
     $start_count = 0;
     $region = "";
     $platform = "";
+    $account_server = $request->accountServer;
 
-    switch($request->accountServer) {
+    switch($account_server) {
         case "EUW":
             $platform = "' . $platform . '";
             $region = "' . $region . '";
@@ -111,6 +112,6 @@ class MatchHistoryController extends Controller
         
         }
     }
-    return view('player.search', compact("match_data", "ranks", "emblem_path", "user", "solo_rank", "flex_rank", "flex_emblem_path", "league_patch", "start_count"));
+    return view('player.search', compact("match_data", "ranks", "emblem_path", "user", "solo_rank", "flex_rank", "flex_emblem_path", "league_patch", "account_server"));
    }
 }

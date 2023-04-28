@@ -2,9 +2,7 @@
 
 @section('content')
     <link href="{{ asset('css/search.css') }}" rel="stylesheet">
-    
     <div class="row">
-
         <div style ="width:200px" class="col-2">
         </div>
         <div style ="width:200px" class="col-1">
@@ -64,15 +62,16 @@
         
         </div>
         <div class="col-md">
+  
             <div class="justify-content-center"> 
                 @foreach($match_data as $match) 
             
                     @foreach($match->participants as $participant)
                         @if($participant->summonerName == $user->name)
                             @if($participant->win == "true")
-                                <div style="background-color:lightblue" class="card">
+                                <div style="background-color:lightblue;max-width:1200px" class="card">
                             @else
-                                <div style="background-color:#F08080" class="card">
+                                <div style="background-color:#F08080;max-width:1200px" class="card">
                             @endif
                             <div class="card-header">
                                 <!-- Game Mode Title-->
@@ -86,10 +85,14 @@
                                 
                             </div>
                                 <div class="row">
-                                    <div class="col-sm">
+                                    <div class="col-sm-2">
                                         <img style="width:70px;height:70px" class="rounded-circle" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/champion/{{$participant->championName}}.png">
                                         <h3>KDA: {{$participant->kills}}/{{$participant->deaths}}/{{$participant->assists}}</h3>
                                       
+                                    </div>
+                                    <div class="col-sm-1">
+                                        <img style="width:70px;height:70px" class="rounded-circle" src="http://ddragon.leagueoflegends.com/cdn/img/{{$match->primary_rune->icon}}">
+                                        <img style="width:30px;height:30px" class="rounded-circle" src="http://ddragon.leagueoflegends.com/cdn/img/{{$match->secondary_rune->icon}}">
                                     </div>
                                     <div class="col-sm">
                                         @foreach($participant->items as $item)
@@ -104,34 +107,53 @@
                                         Control Wards Purchased: {{$participant->visionWardsBoughtInGame}} <br>
                                         Wards Killed: {{$participant->wardsKilled}} 
                                     </div> 
-                                        <div class="col-lg">
+                                        <div class="col-md">
                                         @foreach($match->participants as $participant)
                                             <div class="row">
+                                            
                                                 @if($participant->teamId == 100)
                                                     <div style="display:inline-block">
                                                             <img class="players" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/champion/{{$participant->championName}}.png">
-                                                            <a href="{{route('search', array('accountServer' => 'EUW', 'username' => $participant->summonerName))}}" style="wrap:flex;text-decoration:none;color:black;font-size:15px;">{{$participant->summonerName}} </a>
+                                                            <a href="{{route('search', array('accountServer' => $account_server, 'username' => $participant->summonerName))}}" style="wrap:flex;text-decoration:none;color:black;font-size:15px;">{{$participant->summonerName}} </a>
                                                     </div>
                                                 @endif
                                             </div>
                                         @endforeach
                                     </div>
-                                    <div class="col-lg">
+                                    <div class="col-md">
                                         @foreach($match->participants as $participant)
                                             <div class="row">
                                                 @if($participant->teamId == 200)
                                                     <div style="display:inline-block">
                                                         <img class="players" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/champion/{{$participant->championName}}.png">
-                                                        <a href="{{route('search', array('accountServer' => 'EUW', 'username' => $participant->summonerName))}}" style="wrap:flex;text-decoration:none;color:black;font-size:15px;">{{$participant->summonerName}} </a>
+                                                        <a href="{{route('search', array('accountServer' => $account_server, 'username' => $participant->summonerName))}}" style="wrap:flex;text-decoration:none;color:black;font-size:15px;">{{$participant->summonerName}} </a>
                                                     </div>
                                                 @endif
                                             </div>
                                             
                                         @endforeach
                                     </div>
+                                    <div class="col-sm-2">
+
+                                        <b> Damage Dealt </b>
+                                        <div class="progress">
+                                            <div class="fill" style="width:{{$match->damage_dealt_precentage}}%;"></div>
+                                        </div> 
+
+                                        <b> Damage Taken </b>
+                                        <div class="progress">
+                                            <div class="fill" style="width:{{$match->damage_taken_precentage}}%;"></div>
+                                        </div> 
+
+                                        <b> Damage Mitigated </b>
+                                        <div class="progress">
+                                            <div class="fill" style="width:{{$match->damage_mitigated_precentage}}%;"></div>
+                                        </div> 
+
+                                    </div>
                                 </div>
                             </div>
-                            </br>
+                        </br>
                         @endif
                     @endforeach
                 @endforeach

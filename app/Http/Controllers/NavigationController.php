@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use GuzzleHttp;
 use File;
+use Illuminate\Support\Facades\Http;
 
 
 class NavigationController extends Controller
@@ -24,8 +25,14 @@ class NavigationController extends Controller
         $start_count = 0;
         $region = "";
         $platform = "";
+        $primary_rune = "";
+        $secondary_rune = "";
+        
+        $runesReforgedJson = $client->get('http://ddragon.leagueoflegends.com/cdn/' . $league_patch . '/data/en_US/runesReforged.json');
+        $runesDecoded = json_decode($runesReforgedJson->getBody()->getContents());
+        $account_server = $request->accountServer;
     
-        switch($request->accountServer) {
+        switch($account_server) {
             case "EUW":
                 $platform = "euw1";
                 $region = "europe";
@@ -88,19 +95,68 @@ class NavigationController extends Controller
     
             $stream = $client->get('https://' . $region . '.api.riotgames.com/lol/match/v5/matches/by-puuid/'  . $puuid . '/ids?start='.  $start_count . '&count=10&api_key=' . $api_key);
             $matches = json_decode($data = $stream->getBody()->getContents());
+            // Fetch Matches from MongoDB instead first
+            
             
             $match_data = [];
+            $max_damage_dealt = 0;
+            $max_damage_taken = 0;
+            $max_damage_mitigated = 0;
+
+            $users_damage_dealt = 0;
+            $users_damage_taken = 0;
+            $users_damage_mitigated = 0;
+
             foreach($matches as $match) {
+           
                 $stream =  $client->get('https://' . $region . '.api.riotgames.com/lol/match/v5/matches/'  . $match . '?api_key=' . $api_key);
-    
-                
                 $data = json_decode($stream->getBody()->getContents());     
-            
+     
                 foreach($data->info->participants as $participant) {
+                    // Damage Dealt
+                    if($participant->totalDamageDealtToChampions > $max_damage_dealt) {
+                        $max_damage_dealt = $participant->totalDamageDealtToChampions;
+                    }
+
+                    // Damage mitigated
+                    if($participant->damageSelfMitigated > $max_damage_mitigated) {
+                        $max_damage_mitigated = $participant->damageSelfMitigated;
+                    }
+                    // Damage Taken
+                    if($participant->totalDamageTaken > $max_damage_taken) {
+                        $max_damage_taken = $participant->totalDamageTaken;
+                    }
+
+                   
+                    if($user->name == $participant->summonerName) {
+                        $runes = $participant->perks;
+                        $primary_rune_id = $runes->styles[0]->selections[0]->perk;
+                      
+                        foreach($runesDecoded as $rune) {
+                            if($runes->styles[0]->style == $rune->id) { 
+                                foreach($rune->slots[0]->runes as $major_rune) {
+                                    if($major_rune->id == $primary_rune_id) {
+                                        $primary_rune = $major_rune;
+                                    }
+                                }
+                            } 
+                            if($runes->styles[1]->style == $rune->id) {  
+                                $secondary_rune = $rune;
+                            }
+                        }
+                        $data->info->primary_rune = $primary_rune;
+                        $data->info->secondary_rune = $secondary_rune;
+
+                        $users_damage_dealt =  $participant->totalDamageDealtToChampions;
+                        $users_damage_taken = $participant->totalDamageTaken;
+                        $users_damage_mitigated =  $participant->damageSelfMitigated;
+                    }
+
                     // Fixing champion name so they appear on data dragon link
                     if($participant->championName == "FiddleSticks") {
                         $participant->championName = "Fiddlesticks";
                     }
+
                     $items[] = $participant->item0;
                     $items[] = $participant->item1;
                     $items[] = $participant->item2;
@@ -112,17 +168,14 @@ class NavigationController extends Controller
                     $participant->items = $items;
                     $items = [];
                 }      
-    
+                $data->info->damage_dealt_precentage = ($users_damage_dealt / $max_damage_dealt) * 100;
+                $data->info->damage_mitigated_precentage = ($users_damage_mitigated / $max_damage_mitigated) * 100;
+                $data->info->damage_taken_precentage = ($users_damage_taken / $max_damage_taken) * 100;
                 $match_data[] = $data->info; 
             
             }
         }
-        return view('player.search', compact("match_data", "ranks", "emblem_path", "user", "solo_rank", "flex_rank", "flex_emblem_path", "league_patch", "start_count"));
+        return view('player.search', compact("match_data", "ranks", "emblem_path", "user", "solo_rank", "flex_rank", "flex_emblem_path", "league_patch", "account_server", "runes"));
     }
 
-    public function load_more() {
-        //set start to the variable start_count in query for find all matches
-        // fix up code so its all atomic
-        //return information to page 
-    }
 }
