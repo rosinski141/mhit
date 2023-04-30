@@ -25,3 +25,5 @@ Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name
 Route::get('/search', [NavigationController::class, 'search'])->name('search');
 
 Route::get('/match/{match_id}', [MatchHistoryController::class, 'show']);
+
+Route::get('/update', [NavigationController::class, 'update'])->name('update');

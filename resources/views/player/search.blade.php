@@ -2,14 +2,19 @@
 
 @section('content')
     <link href="{{ asset('css/search.css') }}" rel="stylesheet">
-    <div class="row">
-        <div style ="width:200px" class="col-2">
+    <div class="row" style="margin-bottom:10px">
+        <div class="col-2">
         </div>
-        <div style ="width:200px" class="col-1">
-            <img style="width:170px;height:170px" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/profileicon/{{$user->profileIconId}}.png"> </img>
+        <div class="col-1">
+            <img style="width:120px;height:120px"class="rounded" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/profileicon/{{$user->profileIconId}}.png"> </img>
+        </div>
+        <div class="col-lg">
             <h2>{{$user->name}}</h2>
+            <a class="btn btn-primary" href="{{ route('update', array('accountServer' => $account_server, 'username' => $user->name))}}">Button</a>
         </div>
+
     </div>
+   
     <div class="row">
         <div class="col-1">
         </div>

@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use GuzzleHttp;
 use File;
 use Illuminate\Support\Facades\Http;
+use App\Models\MatchHistory;
 
 
 class NavigationController extends Controller
@@ -93,21 +94,21 @@ class NavigationController extends Controller
             $emblem_path = "." . str_replace(public_path(), "", $emblem_path);
             $flex_emblem_path = "." . str_replace(public_path(), "", $flex_emblem_path);
     
+            // Fetch Matches from MongoDB instead first
             $stream = $client->get('https://' . $region . '.api.riotgames.com/lol/match/v5/matches/by-puuid/'  . $puuid . '/ids?start='.  $start_count . '&count=10&api_key=' . $api_key);
             $matches = json_decode($data = $stream->getBody()->getContents());
-            // Fetch Matches from MongoDB instead first
             
             
             $match_data = [];
-            $max_damage_dealt = 0;
-            $max_damage_taken = 0;
-            $max_damage_mitigated = 0;
-
-            $users_damage_dealt = 0;
-            $users_damage_taken = 0;
-            $users_damage_mitigated = 0;
 
             foreach($matches as $match) {
+                $max_damage_dealt = 0;
+                $max_damage_taken = 0;
+                $max_damage_mitigated = 0;
+    
+                $users_damage_dealt = 0;
+                $users_damage_taken = 0;
+                $users_damage_mitigated = 0;
            
                 $stream =  $client->get('https://' . $region . '.api.riotgames.com/lol/match/v5/matches/'  . $match . '?api_key=' . $api_key);
                 $data = json_decode($stream->getBody()->getContents());     
@@ -167,15 +168,75 @@ class NavigationController extends Controller
                     
                     $participant->items = $items;
                     $items = [];
-                }      
-                $data->info->damage_dealt_precentage = ($users_damage_dealt / $max_damage_dealt) * 100;
-                $data->info->damage_mitigated_precentage = ($users_damage_mitigated / $max_damage_mitigated) * 100;
-                $data->info->damage_taken_precentage = ($users_damage_taken / $max_damage_taken) * 100;
+                }  
+
+                // Calculating precentage decrease for each instance of damage dealt, taken and mitigated
+                $data->info->damage_dealt_precentage = 100 - (($max_damage_dealt - $users_damage_dealt) / $max_damage_dealt * 100);
+                $data->info->damage_mitigated_precentage = 100 - (($max_damage_mitigated - $users_damage_mitigated) /  $max_damage_mitigated * 100);
+                $data->info->damage_taken_precentage = 100 - (($max_damage_taken - $users_damage_taken) / $max_damage_taken * 100);
+                
+
                 $match_data[] = $data->info; 
             
             }
         }
         return view('player.search', compact("match_data", "ranks", "emblem_path", "user", "solo_rank", "flex_rank", "flex_emblem_path", "league_patch", "account_server", "runes"));
     }
+
+    public function update(Request $request) {
+
+        $client = new GuzzleHttp\Client();
+        $api_key = env("API_KEY");
+        $start_count = 0;
+        $platform = "";
+        $reqion = "";
+        $account_server = $request->accountServer;
+    
+        switch($account_server) {
+            case "EUW":
+                $platform = "euw1";
+                $region = "europe";
+                break;
+            case "NA":
+                $platform = "na1";
+                $region = "americas";
+                break;
+            case "OCE":
+                $platform = "oc1";
+                $region = "sea";
+                break;
+            case "BR":
+                $platform = "br1";
+                $region = "americas";
+                break;
+            case "KR":
+                $platform = "kr";
+                $region = "asia";
+                break;
+        }
+    
+
+        $stream = $client->get('https://' . $platform . '.api.riotgames.com/lol/summoner/v4/summoners/by-name/' . $request->username . '?api_key=' . $api_key);
+        
+            
+        $userdata = $stream->getBody()->getContents(); 
+        $puuid = json_decode($userdata)->puuid;
+
+        $stream = $client->get('https://' . $region . '.api.riotgames.com/lol/match/v5/matches/by-puuid/'  . $puuid . '/ids?start='.  $start_count . '&count=10&api_key=' . $api_key);
+        $matches = json_decode($data = $stream->getBody()->getContents());
+      
+        foreach($matches as $match) {
+            $stream =  $client->get('https://' . $region . '.api.riotgames.com/lol/match/v5/matches/'  . $match . '?api_key=' . $api_key);
+            $data = json_decode($stream->getBody()->getContents());     
+
+            $match_history = new MatchHistory();
+            $match_history->match = $data;
+            $match_history->save();
+           
+        }
+
+
+    }
+    
 
 }
