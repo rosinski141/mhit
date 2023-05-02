@@ -7,6 +7,8 @@ use GuzzleHttp;
 use File;
 use Illuminate\Support\Facades\Http;
 use App\Models\MatchHistory;
+use App\Models\User;
+use Auth;
 
 
 class NavigationController extends Controller
@@ -14,20 +16,12 @@ class NavigationController extends Controller
     public function search(Request $request)
     {
         $client = new GuzzleHttp\Client();
-        $stream = "";
         $api_key = env("API_KEY");
         $league_patch = env("LEAGUE_PATCH");
-        $solo_tier = "";
-        $flex_tier = "";
-        $emblem_path = "";
-        $flex_emblem_path = "";
-        $flex_rank = "";
-        $solo_rank = "";
+        // Intializing necessary variables within one line to save line space
+        $solo_tier = $stream = $flex_tier = $emblem_path =  $flex_emblem_path =  $flex_rank =  $solo_rank =  "";
         $start_count = 0;
-        $region = "";
-        $platform = "";
-        $primary_rune = "";
-        $secondary_rune = "";
+        $region =  $platform = $primary_rune =  $secondary_rune =  $runes = "";
         
         $runesReforgedJson = $client->get('http://ddragon.leagueoflegends.com/cdn/' . $league_patch . '/data/en_US/runesReforged.json');
         $runesDecoded = json_decode($runesReforgedJson->getBody()->getContents());
@@ -92,16 +86,18 @@ class NavigationController extends Controller
             }
         
             $emblem_path = "." . str_replace(public_path(), "", $emblem_path);
-            $flex_emblem_path = "." . str_replace(public_path(), "", $flex_emblem_path);
+            $flex_emblem_path = "." . str_replace(public_path(), "", $flex_emblem_path);    
+            
+            
+            // Fetching from MongoDB
+            $matchHist = MatchHistory::where('match.metadata.participants', '=', $puuid)
+                ->orderBy('match.info.gameCreation', 'desc')
+                ->get();
+            
     
-            // Fetch Matches from MongoDB instead first
-            $stream = $client->get('https://' . $region . '.api.riotgames.com/lol/match/v5/matches/by-puuid/'  . $puuid . '/ids?start='.  $start_count . '&count=10&api_key=' . $api_key);
-            $matches = json_decode($data = $stream->getBody()->getContents());
-            
-            
             $match_data = [];
 
-            foreach($matches as $match) {
+            foreach($matchHist as $match) {
                 $max_damage_dealt = 0;
                 $max_damage_taken = 0;
                 $max_damage_mitigated = 0;
@@ -109,10 +105,10 @@ class NavigationController extends Controller
                 $users_damage_dealt = 0;
                 $users_damage_taken = 0;
                 $users_damage_mitigated = 0;
-           
-                $stream =  $client->get('https://' . $region . '.api.riotgames.com/lol/match/v5/matches/'  . $match . '?api_key=' . $api_key);
-                $data = json_decode($stream->getBody()->getContents());     
-     
+
+                // Converting to object instead of nested arrays
+                $data = json_decode(json_encode($match->match), FALSE);
+             
                 foreach($data->info->participants as $participant) {
                     // Damage Dealt
                     if($participant->totalDamageDealtToChampions > $max_damage_dealt) {
@@ -150,7 +146,10 @@ class NavigationController extends Controller
 
                         $users_damage_dealt =  $participant->totalDamageDealtToChampions;
                         $users_damage_taken = $participant->totalDamageTaken;
-                        $users_damage_mitigated =  $participant->damageSelfMitigated;
+                        $users_damage_mitigated =  $participant-> damageSelfMitigated;
+
+                        $minions_killed = $participant->neutralMinionsKilled + $participant->totalMinionsKilled;
+                        
                     }
 
                     // Fixing champion name so they appear on data dragon link
@@ -174,6 +173,8 @@ class NavigationController extends Controller
                 $data->info->damage_dealt_precentage = 100 - (($max_damage_dealt - $users_damage_dealt) / $max_damage_dealt * 100);
                 $data->info->damage_mitigated_precentage = 100 - (($max_damage_mitigated - $users_damage_mitigated) /  $max_damage_mitigated * 100);
                 $data->info->damage_taken_precentage = 100 - (($max_damage_taken - $users_damage_taken) / $max_damage_taken * 100);
+                $data->info->minions_per_min =  round($minions_killed / ($data->info->gameDuration / 60),1);
+                $data->info->game_length = gmdate("i:s",$data->info->gameDuration);
                 
 
                 $match_data[] = $data->info; 
@@ -228,14 +229,24 @@ class NavigationController extends Controller
         foreach($matches as $match) {
             $stream =  $client->get('https://' . $region . '.api.riotgames.com/lol/match/v5/matches/'  . $match . '?api_key=' . $api_key);
             $data = json_decode($stream->getBody()->getContents());     
-
-            $match_history = new MatchHistory();
-            $match_history->match = $data;
-            $match_history->save();
+            if(! MatchHistory::where('_id', '=', $data->metadata->matchId)->exists()) {
+                $match_history = new MatchHistory();
+                $match_history->_id = $data->metadata->matchId;
+                $match_history->match = $data;
+                $match_history->save();
+            }
            
         }
+        return $this->search($request);
 
+    }
 
+    public function link_account(Request $request) {
+        $user = Auth::user();
+        $user->league_username = $request->username; 
+        $user->update();
+
+        return redirect()->back()->with('success', 'Succesfully updated the account!');   
     }
     
 

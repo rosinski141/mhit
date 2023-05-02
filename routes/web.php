@@ -27,3 +27,5 @@ Route::get('/search', [NavigationController::class, 'search'])->name('search');
 Route::get('/match/{match_id}', [MatchHistoryController::class, 'show']);
 
 Route::get('/update', [NavigationController::class, 'update'])->name('update');
+
+Route::get('/link_account', [NavigationController::class, 'link_account'])->name('link_account');
