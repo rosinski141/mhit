@@ -2,11 +2,36 @@
 
 @section('content')
     <link href="{{ asset('css/search.css') }}" rel="stylesheet">
+
+    @if (\Session::has('success'))
+    <div id="update_alert" class="alert alert-success">
+        <b>{!! \Session::get('success') !!}</b>
+        <a class="btn" style="position:absolute;top:0;right:0;" onclick="this.parentNode.style.display='none'" id="alert_close_btn">x</a>
+    </div>
+    @endif
+
+    <div class="row" style="margin-bottom:10px">
+        <div class="col-2">
+        </div>
+        <div class="col-1">
+            <img style="width:120px;height:120px"class="rounded" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/profileicon/{{$user->profileIconId}}.png"> </img>
+        </div>
+        <div class="col-lg">
+            @auth('web')
+                <a href="{{ route('link_account', array('accountServer' => $account_server, 'username' => $user->name))}}">
+                    Link Account <img style="width:25px;height:25px;display:inline-block"src="link.png"></img>
+                </a>
+            @endauth
+            <h2>{{$user->name}}</h2>
+            <a class="btn btn-primary" href="{{ route('update', array('accountServer' => $account_server, 'username' => $user->name))}}">Update</a>
+        </div>
+
+    </div>
+   
     <div class="row">
-        <img style="width:170px;height:150px;margin-left:5%" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/profileicon/{{$user->profileIconId}}.png"> 
-        <h3 style="margin-left:5%;float:right">{{$user->name}}</h3>
-        <div style="margin-top:5%;margin-left:2%" class="col-2">
-            
+        <div class="col-1">
+        </div>
+        <div class="col-2">
                 <div class="card border"> 
                     <h2 class="card-header"> Solo Duo </h2>
                     @if($solo_rank != "")
@@ -54,22 +79,44 @@
                 </div>
         
         </div>
-        <div style="margin-right:20%;margin-top:5%" class="col-lg">
+        <div class="col-md">
+  
             <div class="justify-content-center"> 
                 @foreach($match_data as $match) 
+            
                     @foreach($match->participants as $participant)
                         @if($participant->summonerName == $user->name)
                             @if($participant->win == "true")
-                                <div style="background-color:lightblue" class="card">
+                                <div style="background-color:lightblue;max-width:1200px" class="card">
                             @else
-                                <div style="background-color:#F08080" class="card">
+                                <div style="background-color:#d86464;max-width:1200px" class="card">
                             @endif
+                            <div class="card-header">
+                                <!-- Game Mode Title-->
+                                @if($match->queueId == '440')
+                                    <b class="card-title">Ranked Flex</b>
+                                @elseif($match->queueId == '420')
+                                    <b class="card-title">Ranked Solo/Duo</b>
+                                @else
+                                    <b class="card-title">{{$match->gameMode}}</b>
+                                @endif
+                                
+                            </div>
                                 <div class="row">
-                                    <div class="col-sm">
-                                        <img style="width:70px;height:70px" class="rounded-circle" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/champion/{{$participant->championName}}.png">
-                                        <h3>KDA: {{$participant->kills}}/{{$participant->deaths}}/{{$participant->assists}}</h3>
+                                    <div class="col-sm-2">
+                                        <img style="width:60px;height:60px" class="rounded-circle" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/champion/{{$participant->championName}}.png">
+                                        <b style="margin-left:1%">KDA: {{$participant->kills}}/{{$participant->deaths}}/{{$participant->assists}}</b>
+                                        <hr style="height:2px;border:none;color:#333;background-color:#333;">
+                                        <b style="margin-left:5%">Game Length: {{$match->game_length}}</b><br>
+                                        <b style="margin-left:5%">Cs/min: {{$match->minions_per_min}}</b>
+
                                     </div>
-                                    <div class="col-sm">
+                                    <div class="col-sm-1">
+                                        
+                                        <img style="width:70px;height:70px" class="rounded-circle" src="http://ddragon.leagueoflegends.com/cdn/img/{{$match->primary_rune->icon}}">
+                                        <img style="width:25px;height:25px" class="rounded-circle" src="http://ddragon.leagueoflegends.com/cdn/img/{{$match->secondary_rune->icon}}">
+                                    </div>
+                                    <div class="col-sm" style="margin:none">
                                         @foreach($participant->items as $item)
                                             @if($item == 0) 
                                                 <span class="placeholder item rounded"></span>
@@ -77,35 +124,67 @@
                                                 <img class="item" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/item/{{$item}}.png"> 
                                             @endif
                                         @endforeach
+                                        <br>
+                                        <b>
+                                            Vision Score: {{$participant->visionScore}} <br>
+                                            Control Wards: {{$participant->visionWardsBoughtInGame}} <br>
+                                            Wards Killed: {{$participant->wardsKilled}} 
+                                        </b>
                                     </div> 
-                                        <div class="col-lg">
+                                        <div class="col-2" style="margin:none">
                                         @foreach($match->participants as $participant)
-                                            <div class="row">
+                                            <div class="row-sm participant">
                                                 @if($participant->teamId == 100)
-                                                    <img class="players" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/champion/{{$participant->championName}}.png">
-                                                    <link href="search?accountServer=EUW&username=LordComets" style="font-size:10px">{{$participant->summonerName}} </link>
+                                                    <div style="display:inline-block">
+                                                            <img class="players" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/champion/{{$participant->championName}}.png">
+                                                            <a class="participant" href="{{route('search', array('accountServer' => $account_server, 'username' => $participant->summonerName))}}">{{$participant->summonerName}} </a>
+                                                    </div>
                                                 @endif
                                             </div>
                                         @endforeach
                                     </div>
-                                    <div class="col-lg">
+                                    <div class="col-2">
                                         @foreach($match->participants as $participant)
-                                            <div class="row">
+                                            <div class="row-sm participant">
                                                 @if($participant->teamId == 200)
-                                                    <img class="players" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/champion/{{$participant->championName}}.png">
-                                                    <link href="search?accountServer=EUW&username=LordComets" style="font-size:10px">{{$participant->summonerName}} </link>
+                                                    <div style="display:inline-block">
+                                                        <img class="players" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/champion/{{$participant->championName}}.png">
+                                                        <a class="participant" href="{{route('search', array('accountServer' => $account_server, 'username' => $participant->summonerName))}}">{{$participant->summonerName}} </a>
+                                                    </div>
                                                 @endif
                                             </div>
+                                            
                                         @endforeach
+                                    </div>
+                                    <div class="col-sm-2" style="margin-right:10px">
+
+                                        <b> Damage Dealt </b>
+                                        <div class="progress">
+                                            <div class="fill" style="width:{{$match->damage_dealt_precentage}}%;"></div>
+                                        </div> 
+
+                                        <b> Damage Taken </b>
+                                        <div class="progress">
+                                            <div class="fill" style="width:{{$match->damage_taken_precentage}}%;"></div>
+                                        </div> 
+
+                                        <b> Damage Mitigated </b>
+                                        <div class="progress">
+                                            <div class="fill" style="width:{{$match->damage_mitigated_precentage}}%;"></div>
+                                        </div> 
+
                                     </div>
                                 </div>
                             </div>
-                            </br>
+                        </br>
                         @endif
                     @endforeach
                 @endforeach
-                <btn class="btn btn-primary" style="margin-left:45%">Load More</btn>
             </div>
         </div>
+        <div class="col-1">
+        </div>
     </div>
+
+
 @endsection

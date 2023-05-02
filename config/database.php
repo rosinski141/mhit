@@ -92,7 +92,12 @@ return [
             // 'encrypt' => env('DB_ENCRYPT', 'yes'),
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
-
+        'mongo' => [
+            'driver'   => 'mongodb',
+            'database' => env('MONGO_DATABASE'),
+            'dsn' => env('DB_URI', 'mongodb+srv://username:password@<atlas-cluster-uri>/myappdb?retryWrites=true&w=majority'),
+           
+        ],
     ],
 
     /*

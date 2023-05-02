@@ -3,7 +3,6 @@ version: '3'
 services:
     mhit:
         build:
-            context: ./vendor/laravel/sail/runtimes/8.1
             dockerfile: Dockerfile
             args:
                 WWWGROUP: '${WWWGROUP}'
@@ -50,3 +49,5 @@ networks:
 volumes:
     sail-mysql:
         driver: local
+    mongodb_data_container:
+

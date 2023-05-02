@@ -16,6 +16,7 @@
 
         <!-- Scripts -->
         @vite(['resources/sass/app.scss', 'resources/js/app.js'])
+        <script src="{{ asset('js/search.js') }}"></script>
 
         <!-- CDN packages -->
         <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
@@ -34,16 +35,10 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav text-center mb-2 mb-lg-0 mr-auto">
-                <li class="nav-item">
-                    <a class="nav-link active" aria-current="page" href="#">Home</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">Leaderboards</a>
-                </li>
                 @auth('web')
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            My Stats
+                        <a class="nav-link" href="#" id="navbarAccount" aria-haspopup="true" aria-expanded="false">
+                            My Account
                         </a>
                     </li>
                 @endauth
