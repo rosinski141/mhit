@@ -25,6 +25,12 @@ class NavigationController extends Controller
         
         $runesReforgedJson = $client->get('http://ddragon.leagueoflegends.com/cdn/' . $league_patch . '/data/en_US/runesReforged.json');
         $runesDecoded = json_decode($runesReforgedJson->getBody()->getContents());
+
+        $summonerJson = $client->get('http://ddragon.leagueoflegends.com/cdn/' . $league_patch . '/data/en_US/summoner.json');
+        $summonersDecoded =  json_decode($summonerJson->getBody()->getContents());
+
+       
+
         $account_server = $request->accountServer;
     
         switch($account_server) {
@@ -106,8 +112,19 @@ class NavigationController extends Controller
                 $users_damage_taken = 0;
                 $users_damage_mitigated = 0;
 
+                $user_time_spent_alive = 0;
+                $user_cc_time = 0;
+
+                $longest_time_spent_alive = 0;
+                $highest_cc_time = 0;
+
+                $total_pings = 0;
+                $users_pings = 0;
+
                 // Converting to object instead of nested arrays
                 $data = json_decode(json_encode($match->match), FALSE);
+            
+              
              
                 foreach($data->info->participants as $participant) {
                     // Damage Dealt
@@ -123,6 +140,21 @@ class NavigationController extends Controller
                     if($participant->totalDamageTaken > $max_damage_taken) {
                         $max_damage_taken = $participant->totalDamageTaken;
                     }
+                    // CC time
+                    if($participant->timeCCingOthers > $highest_cc_time) {
+                        $highest_cc_time = $participant->timeCCingOthers;
+                    }
+
+                    // Longest time alive 
+                    if($participant->longestTimeSpentLiving > $longest_time_spent_alive) {
+                        $longest_time_spent_alive = $participant->longestTimeSpentLiving;
+                    }
+
+
+
+                    $total_pings += $participant->allInPings + $participant->assistMePings + $participant->baitPings + $participant->basicPings + $participant->commandPings + $participant->dangerPings + 
+                    $participant->enemyMissingPings +  $participant->enemyVisionPings +  $participant->getBackPings +  $participant->holdPings + $participant->needVisionPings + $participant->onMyWayPings + 
+                    $participant->pushPings + $participant->visionClearedPings;
 
                    
                     if($user->name == $participant->summonerName) {
@@ -144,9 +176,25 @@ class NavigationController extends Controller
                         $data->info->primary_rune = $primary_rune;
                         $data->info->secondary_rune = $secondary_rune;
 
+                        foreach($summonersDecoded->data as $summoner) {
+                            if($summoner->key == $participant->summoner1Id) {
+                                $data->info->primary_summoner = $summoner->image->full;
+                            }
+                            if($summoner->key == $participant->summoner2Id) {
+                                $data->info->secondary_summoner = $summoner->image->full;
+                            }
+                        }
+
                         $users_damage_dealt =  $participant->totalDamageDealtToChampions;
                         $users_damage_taken = $participant->totalDamageTaken;
-                        $users_damage_mitigated =  $participant-> damageSelfMitigated;
+                        $users_damage_mitigated =  $participant->damageSelfMitigated;
+                        $user_time_spent_alive = $participant->longestTimeSpentLiving;
+                        $user_cc_time = $participant->timeCCingOthers;
+                        $user_role = $participant->individualPosition;
+                        // Pings 
+                        $users_pings = $participant->allInPings + $participant->assistMePings + $participant->baitPings + $participant->basicPings + $participant->commandPings + $participant->dangerPings + 
+                        $participant->enemyMissingPings +  $participant->enemyVisionPings +  $participant->getBackPings +  $participant->holdPings + $participant->needVisionPings + $participant->onMyWayPings + 
+                        $participant->pushPings + $participant->visionClearedPings;
 
                         $minions_killed = $participant->neutralMinionsKilled + $participant->totalMinionsKilled;
                         
@@ -175,8 +223,36 @@ class NavigationController extends Controller
                 $data->info->damage_taken_precentage = 100 - (($max_damage_taken - $users_damage_taken) / $max_damage_taken * 100);
                 $data->info->minions_per_min =  round($minions_killed / ($data->info->gameDuration / 60),1);
                 $data->info->game_length = gmdate("i:s",$data->info->gameDuration);
-                
 
+                if ($users_pings < $total_pings / 10) {
+                    $data->info->feedback[] = 'Low Communication';
+                } else {
+                    $data->info->feedback[] = 'Good Communication';
+                }
+           
+                if($user_role != "JUNGLE" && $user_role != "UTILITY") {
+                    if ($data->info->minions_per_min < 5.5) {
+                        $data->info->feedback[] = 'Low CS Per Min';
+                    } elseif ($data->info->minions_per_min > 7) {
+                        $data->info->feedback[] = 'Great CS per Min';
+                    }
+                }
+               
+
+                if($user_cc_time == $highest_cc_time) {
+                    $data->info->feedback[] = 'Crowd Control King';
+                }
+            
+                if($user_time_spent_alive == $longest_time_spent_alive) {
+                    $data->info->feedback[] = 'Unkillable!';
+                }
+
+                // Checking if game is less then 5 min 
+                if($data->info->gameDuration < 300) {
+                    $data->info->remake = true;
+                } else {
+                    $data->info->remake = false;
+                }
                 $match_data[] = $data->info; 
             
             }
@@ -246,7 +322,7 @@ class NavigationController extends Controller
         $user->league_username = $request->username; 
         $user->update();
 
-        return redirect()->back()->with('success', 'Succesfully updated the account!');   
+        return redirect()->back()->with('success', 'Succesfully claimed the account!');   
     }
     
 

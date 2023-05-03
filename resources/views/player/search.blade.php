@@ -19,7 +19,7 @@
         <div class="col-lg">
             @auth('web')
                 <a href="{{ route('link_account', array('accountServer' => $account_server, 'username' => $user->name))}}">
-                    Link Account <img style="width:25px;height:25px;display:inline-block"src="link.png"></img>
+                    Claim Account <img style="width:25px;height:25px;display:inline-block"src="link.png"></img>
                 </a>
             @endauth
             <h2>{{$user->name}}</h2>
@@ -86,10 +86,12 @@
             
                     @foreach($match->participants as $participant)
                         @if($participant->summonerName == $user->name)
-                            @if($participant->win == "true")
+                            @if($match->remake == "true") 
+                                <div style="background-color:lightgray;max-width:1200px" class="card">
+                            @elseif($participant->win == "true")
                                 <div style="background-color:lightblue;max-width:1200px" class="card">
                             @else
-                                <div style="background-color:#d86464;max-width:1200px" class="card">
+                                <div style="background-color:#FFCCCB;max-width:1200px" class="card">
                             @endif
                             <div class="card-header">
                                 <!-- Game Mode Title-->
@@ -105,14 +107,15 @@
                                 <div class="row">
                                     <div class="col-sm-2">
                                         <img style="width:60px;height:60px" class="rounded-circle" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/champion/{{$participant->championName}}.png">
-                                        <b style="margin-left:1%">KDA: {{$participant->kills}}/{{$participant->deaths}}/{{$participant->assists}}</b>
+                                        <b style="margin-left:2%;font-size:22px">{{$participant->kills}} / <b style="color:red">{{$participant->deaths}} </b> / {{$participant->assists}}</b>
                                         <hr style="height:2px;border:none;color:#333;background-color:#333;">
                                         <b style="margin-left:5%">Game Length: {{$match->game_length}}</b><br>
                                         <b style="margin-left:5%">Cs/min: {{$match->minions_per_min}}</b>
 
                                     </div>
                                     <div class="col-sm-1">
-                                        
+                                        <img style="width:35px;height:35px;margin-bottom:5%" class="rounded" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/spell/{{$match->primary_summoner}}">
+                                        <img style="width:35px;height:35px;margin-bottom:5%" class="rounded" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/spell/{{$match->secondary_summoner}}"> <br>
                                         <img style="width:70px;height:70px" class="rounded-circle" src="http://ddragon.leagueoflegends.com/cdn/img/{{$match->primary_rune->icon}}">
                                         <img style="width:25px;height:25px" class="rounded-circle" src="http://ddragon.leagueoflegends.com/cdn/img/{{$match->secondary_rune->icon}}">
                                     </div>
@@ -166,15 +169,24 @@
                                         <b> Damage Taken </b>
                                         <div class="progress">
                                             <div class="fill" style="width:{{$match->damage_taken_precentage}}%;"></div>
-                                        </div> 
+                                        </div>
 
                                         <b> Damage Mitigated </b>
                                         <div class="progress">
                                             <div class="fill" style="width:{{$match->damage_mitigated_precentage}}%;"></div>
                                         </div> 
-
                                     </div>
+                                    @if($match->remake != true) 
+                                    <div style="margin-left:1%;margin-top:1%;margin-bottom:1%;" class="row">
+                                        @foreach($match->feedback as $feedback) 
+                                            <div class="feedback">
+                                                {{$feedback}}
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                    @endif
                                 </div>
+                                
                             </div>
                         </br>
                         @endif

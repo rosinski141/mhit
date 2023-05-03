@@ -33,3 +33,11 @@ body {
     font-size:15px;
     max-width: 80%;
 }
+
+.feedback {
+    display:inline-block;
+    width:fit-content;
+    background:rgb(124, 170, 217);
+    border-radius: 3px;
+    margin-right: 5px;
+}
