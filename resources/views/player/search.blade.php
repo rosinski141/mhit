@@ -10,6 +10,14 @@
     </div>
     @endif
 
+    @if (\Session::has('error'))
+            <div class="alert alert-danger">
+                <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+                <b>{!! \Session::get('error') !!}</b>
+            </div>
+            
+    @endif
+
     <div class="row" style="margin-bottom:10px">
         <div class="col-2">
         </div>

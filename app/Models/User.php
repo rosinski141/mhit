@@ -22,6 +22,7 @@ class User extends Authenticatable
         'email',
         'password',
         'league_username',
+        'league_server',
     ];
 
     /**

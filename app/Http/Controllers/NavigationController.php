@@ -237,8 +237,7 @@ class NavigationController extends Controller
                         $data->info->feedback[] = 'Great CS per Min';
                     }
                 }
-               
-
+            
                 if($user_cc_time == $highest_cc_time) {
                     $data->info->feedback[] = 'Crowd Control King';
                 }
@@ -304,7 +303,8 @@ class NavigationController extends Controller
       
         foreach($matches as $match) {
             $stream =  $client->get('https://' . $region . '.api.riotgames.com/lol/match/v5/matches/'  . $match . '?api_key=' . $api_key);
-            $data = json_decode($stream->getBody()->getContents());     
+            $data = json_decode($stream->getBody()->getContents());
+            // Only update New Records     
             if(! MatchHistory::where('_id', '=', $data->metadata->matchId)->exists()) {
                 $match_history = new MatchHistory();
                 $match_history->_id = $data->metadata->matchId;
@@ -320,6 +320,7 @@ class NavigationController extends Controller
     public function link_account(Request $request) {
         $user = Auth::user();
         $user->league_username = $request->username; 
+        $user->league_server = $request->accountServer;
         $user->update();
 
         return redirect()->back()->with('success', 'Succesfully claimed the account!');   

@@ -37,7 +37,7 @@
             <ul class="navbar-nav text-center mb-2 mb-lg-0 mr-auto">
                 @auth('web')
                     <li class="nav-item dropdown">
-                        <a class="nav-link" href="#" id="navbarAccount" aria-haspopup="true" aria-expanded="false">
+                        <a class="nav-link" href="{{route('get_details')}}" id="navbarAccount" aria-haspopup="true" aria-expanded="false">
                             My Account
                         </a>
                     </li>
