@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\NavigationController;
 use App\Http\Controllers\MatchHistoryController;
+use App\Http\Controllers\AccountController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -24,8 +25,8 @@ Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name
 
 Route::get('/search', [NavigationController::class, 'search'])->name('search');
 
-Route::get('/match/{match_id}', [MatchHistoryController::class, 'show']);
-
 Route::get('/update', [NavigationController::class, 'update'])->name('update');
 
 Route::get('/link_account', [NavigationController::class, 'link_account'])->name('link_account');
+
+Route::get('/get_details', [AccountController::class, 'get_details'])->name('get_details');

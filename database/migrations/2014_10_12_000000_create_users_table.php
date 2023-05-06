@@ -20,6 +20,7 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->string('league_username')->nullable();
+            $table->string('league_server')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
