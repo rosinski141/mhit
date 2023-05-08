@@ -3,21 +3,6 @@
 @section('content')
     <link href="{{ asset('css/search.css') }}" rel="stylesheet">
 
-    @if (\Session::has('success'))
-    <div id="update_alert" class="alert alert-success">
-        <b>{!! \Session::get('success') !!}</b>
-        <a class="btn" style="position:absolute;top:0;right:0;" onclick="this.parentNode.style.display='none'" id="alert_close_btn">x</a>
-    </div>
-    @endif
-
-    @if (\Session::has('error'))
-            <div class="alert alert-danger">
-                <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
-                <b>{!! \Session::get('error') !!}</b>
-            </div>
-            
-    @endif
-
     <div class="row" style="margin-bottom:10px">
         <div class="col-2">
         </div>
@@ -53,7 +38,7 @@
                                 <b> {{$solo_rank->leaguePoints}} LP</b> <br>
                                 <b> Wins: {{$solo_rank->wins}} </b> <br>
                                 <b> Losses: {{$solo_rank->losses}} </b> <br>
-                                <b> Win rate: {{ round((intval($solo_rank->wins) / (intval($solo_rank->wins) + intval($solo_rank->losses))) * 100, 0)}} %</b>
+                                <b> Win rate: {{ round((intval($solo_rank->wins) / (intval($solo_rank->wins) + intval($solo_rank->losses))) * 100, 0)}}%</b>
                             </div>
                         </div>
                     @else
@@ -76,7 +61,7 @@
                                 <b> {{$flex_rank->leaguePoints}} LP</b> <br>
                                 <b> Wins: {{$flex_rank->wins}} </b> <br>
                                 <b> Losses: {{$flex_rank->losses}} </b> <br>
-                                <b> Win rate: {{ round((intval($flex_rank->wins) / (intval($flex_rank->wins) + intval($flex_rank->losses))) * 100, 0)}} %</b>
+                                <b> Win rate: {{ round((intval($flex_rank->wins) / (intval($flex_rank->wins) + intval($flex_rank->losses))) * 100, 0)}}%</b>
                             </div>
                         </div>
                     @else
@@ -85,15 +70,31 @@
                         </div>
                     @endif
                 </div>
+                <br>
+                <div class="card border"> 
+                    <h2 class="card-header"> Champions Played </h2>
+                    <div class="row">
+                        @foreach($champions as $champion)
+                            <hr>
+                            <img style="width:60px;height:60px;padding:0px;display:inline-block;margin-left:5%" class="rounded-circle" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/champion/{{$champion->name}}.png">
+                            <div style="display:inline-block;width:fit-content;height:fit-content">
+                                <b> Win rate: {{ round((intval($champion->wins) / (intval($champion->wins) + intval($champion->losses))) * 100, 0)}}%</b><br>
+                                <b> Games Played: {{intval($champion->wins) + intval($champion->losses)}}</b>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
         
         </div>
         <div class="col-md">
   
             <div class="justify-content-center"> 
                 @foreach($match_data as $match) 
-            
                     @foreach($match->participants as $participant)
+                        <!-- Getting the current user from each match-->
                         @if($participant->summonerName == $user->name)
+
+                            <!-- Setting each model colour depending on outcome of match -->
                             @if($match->remake == "true") 
                                 <div style="background-color:lightgray;max-width:1200px" class="card">
                             @elseif($participant->win == "true")
@@ -136,19 +137,19 @@
                                             @endif
                                         @endforeach
                                         <br>
-                                        <b>
+                                        <div class="vision" >
                                             Vision Score: {{$participant->visionScore}} <br>
                                             Control Wards: {{$participant->visionWardsBoughtInGame}} <br>
                                             Wards Killed: {{$participant->wardsKilled}} 
-                                        </b>
+                                        </div>
                                     </div> 
                                         <div class="col-2" style="margin:none">
                                         @foreach($match->participants as $participant)
                                             <div class="row-sm participant">
                                                 @if($participant->teamId == 100)
                                                     <div style="display:inline-block">
-                                                            <img class="players" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/champion/{{$participant->championName}}.png">
-                                                            <a class="participant" href="{{route('search', array('accountServer' => $account_server, 'username' => $participant->summonerName))}}">{{$participant->summonerName}} </a>
+                                                        <img class="players" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/champion/{{$participant->championName}}.png">
+                                                        <a class="participant" href="{{route('search', array('accountServer' => $account_server, 'username' => $participant->summonerName))}}">{{$participant->summonerName}} </a>
                                                     </div>
                                                 @endif
                                             </div>
