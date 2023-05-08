@@ -9,19 +9,20 @@ use Illuminate\Support\Facades\Http;
 use App\Models\MatchHistory;
 use App\Models\User;
 use Auth;
+use StdClass;
 
 
 class NavigationController extends Controller
 {
     public function search(Request $request)
     {
-        $client = new GuzzleHttp\Client();
+        $client = new GuzzleHttp\Client(['http_errors' => false]);
         $api_key = env("API_KEY");
         $league_patch = env("LEAGUE_PATCH");
         // Intializing necessary variables within one line to save line space
         $solo_tier = $stream = $flex_tier = $emblem_path =  $flex_emblem_path =  $flex_rank =  $solo_rank =  "";
         $start_count = 0;
-        $region =  $platform = $primary_rune =  $secondary_rune =  $runes = "";
+        $primary_rune =  $secondary_rune =  $runes = "";
         
         $runesReforgedJson = $client->get('http://ddragon.leagueoflegends.com/cdn/' . $league_patch . '/data/en_US/runesReforged.json');
         $runesDecoded = json_decode($runesReforgedJson->getBody()->getContents());
@@ -29,43 +30,26 @@ class NavigationController extends Controller
         $summonerJson = $client->get('http://ddragon.leagueoflegends.com/cdn/' . $league_patch . '/data/en_US/summoner.json');
         $summonersDecoded =  json_decode($summonerJson->getBody()->getContents());
 
-       
 
         $account_server = $request->accountServer;
     
-        switch($account_server) {
-            case "EUW":
-                $platform = "euw1";
-                $region = "europe";
-                break;
-            case "NA":
-                $platform = "na1";
-                $region = "americas";
-                break;
-            case "OCE":
-                $platform = "oc1";
-                $region = "sea";
-                break;
-            case "BR":
-                $platform = "br1";
-                $region = "americas";
-                break;
-            case "KR":
-                $platform = "kr";
-                $region = "asia";
-                break;
-        }
+        $server_details = $this->get_platform_and_region($account_server);
+     
     
-        if($platform && $region) {
-            $stream = $client->get('https://' . $platform . '.api.riotgames.com/lol/summoner/v4/summoners/by-name/' . $request->username . '?api_key=' . $api_key);
-        
+        if($server_details->platform && $server_details->region) {
             
-            $userdata = $stream->getBody()->getContents(); 
+            $stream = $client->get('https://' . $server_details->platform . '.api.riotgames.com/lol/summoner/v4/summoners/by-name/' . $request->username . '?api_key=' . $api_key);
+
+            // Returning back if user can't be found
+            if($stream->getStatusCode() == 404 ) {
+                return redirect()->back()->with('error', 'Could not find an account with that username in that region!');
+            }
+           
             
-            $userid = json_decode($userdata)->id;
-            $puuid = json_decode($userdata)->puuid;
-            $user = json_decode($userdata);
-            $stream = $client->get('https://' . $platform . '.api.riotgames.com/lol/league/v4/entries/by-summoner/' . $userid . '?api_key=' . $api_key);
+            $userdata = json_decode($stream->getBody()->getContents()); 
+            $user = $userdata;
+
+            $stream = $client->get('https://' . $server_details->platform . '.api.riotgames.com/lol/league/v4/entries/by-summoner/' . $user->id . '?api_key=' . $api_key);
             $ranks = json_decode($data = $stream->getBody()->getContents());
         
             $emblems_array = File::files(public_path() . "/ranked-emblems/");
@@ -96,14 +80,19 @@ class NavigationController extends Controller
             
             
             // Fetching from MongoDB
-            $matchHist = MatchHistory::where('match.metadata.participants', '=', $puuid)
+            $matchHist = MatchHistory::where('match.metadata.participants', '=', $user->puuid)
                 ->orderBy('match.info.gameCreation', 'desc')
                 ->get();
             
     
             $match_data = [];
 
+            $champions =  array();
+
+
             foreach($matchHist as $match) {
+
+                // Initiating variables for per match statistics
                 $max_damage_dealt = 0;
                 $max_damage_taken = 0;
                 $max_damage_mitigated = 0;
@@ -150,13 +139,13 @@ class NavigationController extends Controller
                         $longest_time_spent_alive = $participant->longestTimeSpentLiving;
                     }
 
-
-
+                    
+                    // Total number of pings
                     $total_pings += $participant->allInPings + $participant->assistMePings + $participant->baitPings + $participant->basicPings + $participant->commandPings + $participant->dangerPings + 
                     $participant->enemyMissingPings +  $participant->enemyVisionPings +  $participant->getBackPings +  $participant->holdPings + $participant->needVisionPings + $participant->onMyWayPings + 
                     $participant->pushPings + $participant->visionClearedPings;
 
-                   
+                    // Get runes from runes_reforged json 
                     if($user->name == $participant->summonerName) {
                         $runes = $participant->perks;
                         $primary_rune_id = $runes->styles[0]->selections[0]->perk;
@@ -176,6 +165,7 @@ class NavigationController extends Controller
                         $data->info->primary_rune = $primary_rune;
                         $data->info->secondary_rune = $secondary_rune;
 
+                        // Get summoner spell image from summoner json 
                         foreach($summonersDecoded->data as $summoner) {
                             if($summoner->key == $participant->summoner1Id) {
                                 $data->info->primary_summoner = $summoner->image->full;
@@ -184,14 +174,40 @@ class NavigationController extends Controller
                                 $data->info->secondary_summoner = $summoner->image->full;
                             }
                         }
-
+                        // Get users statstics for game
                         $users_damage_dealt =  $participant->totalDamageDealtToChampions;
                         $users_damage_taken = $participant->totalDamageTaken;
                         $users_damage_mitigated =  $participant->damageSelfMitigated;
                         $user_time_spent_alive = $participant->longestTimeSpentLiving;
                         $user_cc_time = $participant->timeCCingOthers;
                         $user_role = $participant->individualPosition;
-                        // Pings 
+                        
+                        $champ_exits_flag = false;
+                        foreach($champions as $champ) {
+                            if($champ->name == $participant->championName) {
+                                if($participant->win == true) {
+                                    $champ->wins += 1;
+                                } else {
+                                    $champ->losses += 1;
+                                }
+                                $champ_exits_flag = true;
+                            }                          
+                        }
+                        if($champ_exits_flag == false) {
+                            $current_champ = new StdClass();
+                            $current_champ->name = $participant->championName;
+                            if($participant->win == true) {
+                                $current_champ->wins = 1;
+                                $current_champ->losses = 0;
+                            } else {
+                                $current_champ->wins = 0;
+                                $current_champ->losses = 1;
+                            }
+                            $champions[] = $current_champ;
+                        }
+                       
+                        
+                        // Get users total pings
                         $users_pings = $participant->allInPings + $participant->assistMePings + $participant->baitPings + $participant->basicPings + $participant->commandPings + $participant->dangerPings + 
                         $participant->enemyMissingPings +  $participant->enemyVisionPings +  $participant->getBackPings +  $participant->holdPings + $participant->needVisionPings + $participant->onMyWayPings + 
                         $participant->pushPings + $participant->visionClearedPings;
@@ -224,12 +240,14 @@ class NavigationController extends Controller
                 $data->info->minions_per_min =  round($minions_killed / ($data->info->gameDuration / 60),1);
                 $data->info->game_length = gmdate("i:s",$data->info->gameDuration);
 
+                // Checking if user averages higher pings than the average 
                 if ($users_pings < $total_pings / 10) {
                     $data->info->feedback[] = 'Low Communication';
                 } else {
                     $data->info->feedback[] = 'Good Communication';
                 }
-           
+                
+                // Checking if user is a jungler or support as they don't recieve equal cs to laners
                 if($user_role != "JUNGLE" && $user_role != "UTILITY") {
                     if ($data->info->minions_per_min < 5.5) {
                         $data->info->feedback[] = 'Low CS Per Min';
@@ -237,11 +255,11 @@ class NavigationController extends Controller
                         $data->info->feedback[] = 'Great CS per Min';
                     }
                 }
-            
+                // Checking if user has highest crowd control score 
                 if($user_cc_time == $highest_cc_time) {
                     $data->info->feedback[] = 'Crowd Control King';
                 }
-            
+                // Checking if user died the least in the game
                 if($user_time_spent_alive == $longest_time_spent_alive) {
                     $data->info->feedback[] = 'Unkillable!';
                 }
@@ -253,10 +271,11 @@ class NavigationController extends Controller
                     $data->info->remake = false;
                 }
                 $match_data[] = $data->info; 
-            
             }
+           
         }
-        return view('player.search', compact("match_data", "ranks", "emblem_path", "user", "solo_rank", "flex_rank", "flex_emblem_path", "league_patch", "account_server", "runes"));
+       
+        return view('player.search', compact("match_data", "ranks", "emblem_path", "user", "solo_rank", "flex_rank", "flex_emblem_path", "league_patch", "account_server", "runes", "champions"));
     }
 
     public function update(Request $request) {
@@ -264,48 +283,24 @@ class NavigationController extends Controller
         $client = new GuzzleHttp\Client();
         $api_key = env("API_KEY");
         $start_count = 0;
-        $platform = "";
-        $reqion = "";
         $account_server = $request->accountServer;
     
-        switch($account_server) {
-            case "EUW":
-                $platform = "euw1";
-                $region = "europe";
-                break;
-            case "NA":
-                $platform = "na1";
-                $region = "americas";
-                break;
-            case "OCE":
-                $platform = "oc1";
-                $region = "sea";
-                break;
-            case "BR":
-                $platform = "br1";
-                $region = "americas";
-                break;
-            case "KR":
-                $platform = "kr";
-                $region = "asia";
-                break;
-        }
-    
+        $server_details = $this->get_platform_and_region($account_server);
 
-        $stream = $client->get('https://' . $platform . '.api.riotgames.com/lol/summoner/v4/summoners/by-name/' . $request->username . '?api_key=' . $api_key);
-        
+        $stream = $client->get('https://' . $server_details->platform . '.api.riotgames.com/lol/summoner/v4/summoners/by-name/' . $request->username . '?api_key=' . $api_key);
             
-        $userdata = $stream->getBody()->getContents(); 
-        $puuid = json_decode($userdata)->puuid;
+        $user = json_decode($stream->getBody()->getContents()); 
 
-        $stream = $client->get('https://' . $region . '.api.riotgames.com/lol/match/v5/matches/by-puuid/'  . $puuid . '/ids?start='.  $start_count . '&count=10&api_key=' . $api_key);
+        $stream = $client->get('https://' . $server_details->region . '.api.riotgames.com/lol/match/v5/matches/by-puuid/'  . $user->puuid . '/ids?start='.  $start_count . '&count=10&api_key=' . $api_key);
         $matches = json_decode($data = $stream->getBody()->getContents());
       
         foreach($matches as $match) {
-            $stream =  $client->get('https://' . $region . '.api.riotgames.com/lol/match/v5/matches/'  . $match . '?api_key=' . $api_key);
-            $data = json_decode($stream->getBody()->getContents());
             // Only update New Records     
-            if(! MatchHistory::where('_id', '=', $data->metadata->matchId)->exists()) {
+            if(! MatchHistory::where('_id', '=', $match)->exists()) {
+
+                $stream =  $client->get('https://' . $server_details->region . '.api.riotgames.com/lol/match/v5/matches/'  . $match . '?api_key=' . $api_key);
+                $data = json_decode($stream->getBody()->getContents());
+                
                 $match_history = new MatchHistory();
                 $match_history->_id = $data->metadata->matchId;
                 $match_history->match = $data;
@@ -324,6 +319,35 @@ class NavigationController extends Controller
         $user->update();
 
         return redirect()->back()->with('success', 'Succesfully claimed the account!');   
+    }
+
+    private function get_platform_and_region($server) {
+        $server_details = new StdClass();
+        
+        switch($server) {
+            case "EUW":
+                $server_details->platform = "euw1";
+                $server_details->region = "europe";
+                break;
+            case "NA":
+                $server_details->platform = "na1";
+                $server_details->region = "americas";
+                break;
+            case "OCE":
+                $server_details->platform = "oc1";
+                $server_details->region = "sea";
+                break;
+            case "BR":
+                $server_details->platform = "br1";
+                $server_details->region = "americas";
+                break;
+            case "KR":
+                $server_details->platform = "kr";
+                $server_details->region = "asia";
+                break;
+        }
+
+        return $server_details; 
     }
     
 

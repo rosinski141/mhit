@@ -1,14 +1,6 @@
 @extends('layouts.app')
 
 @section('content')
-
-    @if (\Session::has('error'))
-            <div class="alert alert-danger">
-                <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
-                <b>{!! \Session::get('error') !!}</b>
-            </div>
-            
-    @endif
     <div class="d-flex justify-content-center"> 
         <h2> Match History and Improvement Tool </h2>
     </div>

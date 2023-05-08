@@ -16,7 +16,6 @@
 
         <!-- Scripts -->
         @vite(['resources/sass/app.scss', 'resources/js/app.js'])
-        <script src="{{ asset('js/search.js') }}"></script>
 
         <!-- CDN packages -->
         <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
@@ -83,7 +82,19 @@
             @endguest
         </div>
         </nav>
-
+           @if (\Session::has('error'))
+            <div class="alert alert-danger">
+                <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+                <b>{!! \Session::get('error') !!}</b>
+            </div>
+            
+            @endif
+            @if (\Session::has('success'))
+                <div id="update_alert" class="alert alert-success">
+                    <b>{!! \Session::get('success') !!}</b>
+                    <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+                </div>
+            @endif
         <main class="py-4">
             @yield('content')
             <footer>
