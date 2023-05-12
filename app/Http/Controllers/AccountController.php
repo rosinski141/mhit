@@ -19,38 +19,14 @@ class AccountController extends Controller
         $client = new GuzzleHttp\Client();
         $api_key = env("API_KEY");
         $league_patch = env("LEAGUE_PATCH");
-        $start_count = 0;
-        $platform = "";
-        $reqion = "";
 
         if(!$user->league_username) {
             return redirect()->back()->with('error', 'No account has been claimed to this user');
         }
     
-        switch($user->league_server) {
-            case "EUW":
-                $platform = "euw1";
-                $region = "europe";
-                break;
-            case "NA":
-                $platform = "na1";
-                $region = "americas";
-                break;
-            case "OCE":
-                $platform = "oc1";
-                $region = "sea";
-                break;
-            case "BR":
-                $platform = "br1";
-                $region = "americas";
-                break;
-            case "KR":
-                $platform = "kr";
-                $region = "asia";
-                break;
-        }
+        $server_details = $this->get_platform($user->league_server);
 
-        $stream = $client->get('https://' . $platform . '.api.riotgames.com/lol/summoner/v4/summoners/by-name/' . $user->league_username . '?api_key=' . $api_key);
+        $stream = $client->get('https://' . $server_details->platform . '.api.riotgames.com/lol/summoner/v4/summoners/by-name/' . $user->league_username . '?api_key=' . $api_key);
             
         $userdata = $stream->getBody()->getContents(); 
         $puuid = json_decode($userdata)->puuid;
@@ -137,6 +113,38 @@ class AccountController extends Controller
         $name = $player->summonerName;
         $level = $player->summonerLevel;
 
+        $stat_text = $this->get_stat_text($stats);
+       
+
+        return view('player.account', compact("profileIcon", "name", "stat_text", "level", "league_patch", "match_count"));
+    
+    }
+
+    private function get_platform($server) {
+        $server_details = new StdClass();
+        
+        switch($server) {
+            case "EUW":
+                $server_details->platform = "euw1";
+                break;
+            case "NA":
+                $server_details->platform = "na1";
+                break;
+            case "OCE":
+                $server_details->platform = "oc1";
+                break;
+            case "BR":
+                $server_details->platform = "br1";
+                break;
+            case "KR":
+                $server_details->platform = "kr";
+                break;
+        }
+
+        return $server_details; 
+    }
+
+    private function get_stat_text($stats) {
         $stat_text = new stdClass();
     
 
@@ -176,8 +184,6 @@ class AccountController extends Controller
             $stat_text->damage = "You had less cs than your opponent in " . ($stats->less_cs  - $stats->more_cs) . " matches. Practice last-hitting in practice tool to get better cs/m or optimise your jungle pathing.";
         }
        
-
-        return view('player.account', compact("profileIcon", "name", "stat_text", "level", "league_patch", "match_count"));
-    
+        return $stat_text;
     }
 }

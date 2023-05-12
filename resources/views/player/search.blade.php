@@ -1,7 +1,73 @@
 @extends('layouts.app')
 
-@section('content')
+@push('other-scripts')
     <link href="{{ asset('css/search.css') }}" rel="stylesheet">
+    <script>
+
+        function hideNonSolo() {
+            var flex = document.getElementsByClassName("440");
+
+            for(var i = 0; i < flex.length; i++) {
+                flex[i].style.display = "none";
+                flex[i].style.marginBottom = "0px";
+            }
+
+            var solo = document.getElementsByClassName("420");
+
+            for(var i = 0; i < solo.length; i++) {
+                solo[i].style.display = "block";
+                solo[i].style.marginBottom = "25px";
+            }
+
+
+            var aram = document.getElementsByClassName("450");
+
+            for(var i = 0; i < aram.length; i++) {
+                aram[i].style.display = "none";
+                aram[i].style.marginBottom = "0";
+            }
+        }
+
+        function hideNonFlex() {
+
+            var flex = document.getElementsByClassName("440");
+
+            for(var i = 0; i < flex.length; i++) {
+                flex[i].style.display = "block";
+                flex[i].style.marginBottom = "25px";
+            }
+
+            var solo = document.getElementsByClassName("420");
+
+            for(var i = 0; i < solo.length; i++) {
+                solo[i].style.display = "none";
+                solo[i].style.marginBottom = "0";
+            }
+
+            var aram = document.getElementsByClassName("450");
+
+            for(var i = 0; i < aram.length; i++) {
+                aram[i].style.display = "none";
+                aram[i].style.marginBottom = "0";
+            }
+        }
+
+        function showAll() {
+
+            var card = document.getElementsByClassName("match");
+
+            for(var i = 0; i < card.length; i++) {
+                card[i].style.display = "block";
+                card[i].style.marginBottom = "25px";
+            }
+
+        }
+        
+    </script>
+@endpush
+
+@section('content')
+      
 
     <div class="row" style="margin-bottom:10px">
         <div class="col-2">
@@ -24,21 +90,21 @@
     <div class="row">
         <div class="col-1">
         </div>
-        <div class="col-2">
+        <div class="col-2 championRanks">
                 <div class="card border"> 
                     <h2 class="card-header"> Solo Duo </h2>
-                    @if($solo_rank != "")
+                    @if($emblems->solo_rank != "")
                         <div class="row">
                             <hr>
                             <div class="col-4">
-                                <img style="width:100px;height:130px;display:inline-block" src="{{$emblem_path}}">
+                                <img class="emblems" src="{{$emblems->emblem_path}}">
                             </div>
                             <div class="col-sm">
-                                <b> {{$solo_rank->tier}} {{$solo_rank->rank}} </b> <br>
-                                <b> {{$solo_rank->leaguePoints}} LP</b> <br>
-                                <b> Wins: {{$solo_rank->wins}} </b> <br>
-                                <b> Losses: {{$solo_rank->losses}} </b> <br>
-                                <b> Win rate: {{ round((intval($solo_rank->wins) / (intval($solo_rank->wins) + intval($solo_rank->losses))) * 100, 0)}}%</b>
+                                <b> {{$emblems->solo_rank->tier}} {{$emblems->solo_rank->rank}} </b> <br>
+                                <b> {{$emblems->solo_rank->leaguePoints}} LP</b> <br>
+                                <b> Wins: {{$emblems->solo_rank->wins}} </b> <br>
+                                <b> Losses: {{$emblems->solo_rank->losses}} </b> <br>
+                                <b> Win rate: {{ round((intval($emblems->solo_rank->wins) / (intval($emblems->solo_rank->wins) + intval($emblems->solo_rank->losses))) * 100, 0)}}%</b>
                             </div>
                         </div>
                     @else
@@ -50,18 +116,18 @@
                 <br>
                 <div class="card border"> 
                     <h2 class="card-header"> Ranked Flex </h2>
-                    @if($flex_rank != "")
+                    @if($emblems->flex_rank != "")
                         <div class="row">
                             <hr>
                             <div class="col-4">
-                                <img style="width:100px;height:130px;display:inline-block"src="{{$flex_emblem_path}}">
+                                <img class="emblems" src="{{$emblems->flex_emblem_path}}">
                             </div>
                             <div class="col-sm">
-                                <b> {{$flex_rank->tier}} {{$flex_rank->rank}} </b> <br>
-                                <b> {{$flex_rank->leaguePoints}} LP</b> <br>
-                                <b> Wins: {{$flex_rank->wins}} </b> <br>
-                                <b> Losses: {{$flex_rank->losses}} </b> <br>
-                                <b> Win rate: {{ round((intval($flex_rank->wins) / (intval($flex_rank->wins) + intval($flex_rank->losses))) * 100, 0)}}%</b>
+                                <b> {{$emblems->flex_rank->tier}} {{$emblems->flex_rank->rank}} </b> <br>
+                                <b> {{$emblems->flex_rank->leaguePoints}} LP</b> <br>
+                                <b> Wins: {{$emblems->flex_rank->wins}} </b> <br>
+                                <b> Losses: {{$emblems->flex_rank->losses}} </b> <br>
+                                <b> Win rate: {{ round((intval($emblems->flex_rank->wins) / (intval($emblems->flex_rank->wins) + intval($emblems->flex_rank->losses))) * 100, 0)}}%</b>
                             </div>
                         </div>
                     @else
@@ -76,10 +142,10 @@
                     <div class="row">
                         @foreach($champions as $champion)
                             <hr>
-                            <img style="width:60px;height:60px;padding:0px;display:inline-block;margin-left:5%" class="rounded-circle" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/champion/{{$champion->name}}.png">
+                            <img style="width:20%;height:14%;padding:0px;display:inline-block;margin-left:5%" class="rounded-circle" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/champion/{{$champion['name']}}.png">
                             <div style="display:inline-block;width:fit-content;height:fit-content">
-                                <b> Win rate: {{ round((intval($champion->wins) / (intval($champion->wins) + intval($champion->losses))) * 100, 0)}}%</b><br>
-                                <b> Games Played: {{intval($champion->wins) + intval($champion->losses)}}</b>
+                                <b> Win rate: {{ round((intval($champion['wins']) / (intval($champion['wins']) + intval($champion['losses']))) * 100, 0)}}%</b><br>
+                                <b> Games Played: {{$champion['games_played']}}</b>
                             </div>
                         @endforeach
                     </div>
@@ -87,8 +153,12 @@
         
         </div>
         <div class="col-md">
-  
             <div class="justify-content-center"> 
+            <div class="filters" style="margin-bottom:15px"> 
+                <btn id='solo' onclick="hideNonSolo()" class="btn btn-secondary" style='margin-right:5px'> Ranked Solo/Duo </btn>
+                <btn id='flex' onclick="hideNonFlex()" class="btn btn-secondary" style='margin-right:5px'> Ranked Flex </btn>
+                <btn id='flex' onclick="showAll()" class="btn btn-secondary"> Show All </btn>
+            </div>
                 @foreach($match_data as $match) 
                     @foreach($match->participants as $participant)
                         <!-- Getting the current user from each match-->
@@ -96,11 +166,11 @@
 
                             <!-- Setting each model colour depending on outcome of match -->
                             @if($match->remake == "true") 
-                                <div style="background-color:lightgray;max-width:1200px" class="card">
+                                <div style="background-color:lightgray;max-width:100%;margin-bottom:25px" class="card match {{$match->queueId}}">
                             @elseif($participant->win == "true")
-                                <div style="background-color:lightblue;max-width:1200px" class="card">
+                                <div style="background-color:lightblue;max-width:100%;margin-bottom:25px" class="card match {{$match->queueId}}">
                             @else
-                                <div style="background-color:#FFCCCB;max-width:1200px" class="card">
+                                <div style="background-color:#FFCCCB;max-width:100%;margin-bottom:25px" class="card match {{$match->queueId}}">
                             @endif
                             <div class="card-header">
                                 <!-- Game Mode Title-->
@@ -115,18 +185,20 @@
                             </div>
                                 <div class="row">
                                     <div class="col-sm-2">
-                                        <img style="width:60px;height:60px" class="rounded-circle" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/champion/{{$participant->championName}}.png">
-                                        <b style="margin-left:2%;font-size:22px">{{$participant->kills}} / <b style="color:red">{{$participant->deaths}} </b> / {{$participant->assists}}</b>
-                                        <hr style="height:2px;border:none;color:#333;background-color:#333;">
-                                        <b style="margin-left:5%">Game Length: {{$match->game_length}}</b><br>
-                                        <b style="margin-left:5%">Cs/min: {{$match->minions_per_min}}</b>
+                                        <img style="width:38%;height:45%;max-width:120px;max-height:120px" class="rounded-circle" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/champion/{{$participant->championName}}.png">
+                                        <b class="kda">{{$participant->kills}} / <b style="color:red">{{$participant->deaths}} </b> / {{$participant->assists}}</b>
+                                        <div class="description"> 
+                                            <hr style="height:2%;border:none;color:#333;background-color:#333;">
+                                            <b style="margin-left:5%">Game Length: {{$match->game_length}}</b><br>
+                                            <b style="margin-left:5%">Cs/min: {{$match->minions_per_min}}</b>
+                                        </div>
 
                                     </div>
                                     <div class="col-sm-1">
-                                        <img style="width:35px;height:35px;margin-bottom:5%" class="rounded" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/spell/{{$match->primary_summoner}}">
-                                        <img style="width:35px;height:35px;margin-bottom:5%" class="rounded" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/spell/{{$match->secondary_summoner}}"> <br>
-                                        <img style="width:70px;height:70px" class="rounded-circle" src="http://ddragon.leagueoflegends.com/cdn/img/{{$match->primary_rune->icon}}">
-                                        <img style="width:25px;height:25px" class="rounded-circle" src="http://ddragon.leagueoflegends.com/cdn/img/{{$match->secondary_rune->icon}}">
+                                        <img style="width:50%;height:25%;margin-bottom:5%;max-width:60px;max-height:60px" class="rounded" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/spell/{{$match->summoners->primary_summoner}}">
+                                        <img style="width:50%;height:25%;margin-bottom:5%;max-width:60px;max-height:60px" class="rounded" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/spell/{{$match->summoners->secondary_summoner}}"> <br>
+                                        <img style="width:90%;height:50%;max-width:120px;max-height:120px" class="rounded-circle" src="http://ddragon.leagueoflegends.com/cdn/img/{{$match->runes->primary_rune->icon}}">
+                                        <img style="width:40%;height:20%;max-width:40px;max-height:40px" class="rounded-circle" src="http://ddragon.leagueoflegends.com/cdn/img/{{$match->runes->secondary_rune->icon}}">
                                     </div>
                                     <div class="col-sm" style="margin:none">
                                         @foreach($participant->items as $item)
@@ -148,8 +220,10 @@
                                             <div class="row-sm participant">
                                                 @if($participant->teamId == 100)
                                                     <div style="display:inline-block">
-                                                        <img class="players" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/champion/{{$participant->championName}}.png">
-                                                        <a class="participant" href="{{route('search', array('accountServer' => $account_server, 'username' => $participant->summonerName))}}">{{$participant->summonerName}} </a>
+                                                        <a class="participant" href="{{route('search', array('accountServer' => $account_server, 'username' => $participant->summonerName))}}">
+                                                            <img class="players" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/champion/{{$participant->championName}}.png">
+                                                            {{$participant->summonerName}}  
+                                                        </a>
                                                     </div>
                                                 @endif
                                             </div>
@@ -160,8 +234,11 @@
                                             <div class="row-sm participant">
                                                 @if($participant->teamId == 200)
                                                     <div style="display:inline-block">
-                                                        <img class="players" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/champion/{{$participant->championName}}.png">
-                                                        <a class="participant" href="{{route('search', array('accountServer' => $account_server, 'username' => $participant->summonerName))}}">{{$participant->summonerName}} </a>
+                                                      
+                                                        <a class="participant" href="{{route('search', array('accountServer' => $account_server, 'username' => $participant->summonerName))}}">
+                                                            <img class="players" src="http://ddragon.leagueoflegends.com/cdn/{{$league_patch}}/img/champion/{{$participant->championName}}.png">
+                                                            {{$participant->summonerName}} 
+                                                        </a>
                                                     </div>
                                                 @endif
                                             </div>
@@ -197,7 +274,6 @@
                                 </div>
                                 
                             </div>
-                        </br>
                         @endif
                     @endforeach
                 @endforeach

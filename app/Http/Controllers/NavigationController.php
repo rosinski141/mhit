@@ -14,22 +14,35 @@ use StdClass;
 
 class NavigationController extends Controller
 {
+ 
+    private $client;
+    private $env;
+    private $league_patch;
+    private $runes_decoded;
+    private $summoners_decoded;
+    private $queues;
+
+    private function initiate_variables() {
+        $this->client = new GuzzleHttp\Client(['http_errors' => false]);
+        $this->api_key = env("API_KEY");
+        $this->league_patch = env("LEAGUE_PATCH");
+
+        // Get data from json files
+        $this->runes_decoded =  json_decode($this->client->get('http://ddragon.leagueoflegends.com/cdn/' . $this->league_patch . '/data/en_US/runesReforged.json')->getBody()->getContents());
+        $this->summoners_decoded = json_decode($this->client->get('http://ddragon.leagueoflegends.com/cdn/' . $this->league_patch . '/data/en_US/summoner.json')->getBody()->getContents());
+    }
+    
+
     public function search(Request $request)
     {
-        $client = new GuzzleHttp\Client(['http_errors' => false]);
-        $api_key = env("API_KEY");
-        $league_patch = env("LEAGUE_PATCH");
+        $this->initiate_variables();
+        
+      
         // Intializing necessary variables within one line to save line space
-        $solo_tier = $stream = $flex_tier = $emblem_path =  $flex_emblem_path =  $flex_rank =  $solo_rank =  "";
+        $solo_tier = $stream = $flex_tier =  $flex_rank =  $solo_rank =  "";
         $start_count = 0;
         $primary_rune =  $secondary_rune =  $runes = "";
         
-        $runesReforgedJson = $client->get('http://ddragon.leagueoflegends.com/cdn/' . $league_patch . '/data/en_US/runesReforged.json');
-        $runesDecoded = json_decode($runesReforgedJson->getBody()->getContents());
-
-        $summonerJson = $client->get('http://ddragon.leagueoflegends.com/cdn/' . $league_patch . '/data/en_US/summoner.json');
-        $summonersDecoded =  json_decode($summonerJson->getBody()->getContents());
-
 
         $account_server = $request->accountServer;
     
@@ -38,7 +51,7 @@ class NavigationController extends Controller
     
         if($server_details->platform && $server_details->region) {
             
-            $stream = $client->get('https://' . $server_details->platform . '.api.riotgames.com/lol/summoner/v4/summoners/by-name/' . $request->username . '?api_key=' . $api_key);
+            $stream = $this->client->get('https://' . $server_details->platform . '.api.riotgames.com/lol/summoner/v4/summoners/by-name/' . $request->username . '?api_key=' . $this->api_key);
 
             // Returning back if user can't be found
             if($stream->getStatusCode() == 404 ) {
@@ -48,36 +61,12 @@ class NavigationController extends Controller
             
             $userdata = json_decode($stream->getBody()->getContents()); 
             $user = $userdata;
-
-            $stream = $client->get('https://' . $server_details->platform . '.api.riotgames.com/lol/league/v4/entries/by-summoner/' . $user->id . '?api_key=' . $api_key);
+         
+            $stream = $this->client->get('https://' . $server_details->platform . '.api.riotgames.com/lol/league/v4/entries/by-summoner/' . $user->id . '?api_key=' . $this->api_key);
             $ranks = json_decode($data = $stream->getBody()->getContents());
         
-            $emblems_array = File::files(public_path() . "/ranked-emblems/");
-            foreach($ranks as $rank) {
-                if($rank->queueType == "RANKED_SOLO_5x5") {
-                    $solo_tier = strtolower($rank->tier);
-                    $solo_rank = $rank;
-                } else {
-                    $flex_tier = strtolower($rank->tier);
-                    $flex_rank = $rank;
-                }
-            }
         
-            foreach($emblems_array as $emblem) {
-                $current_filename = strtolower($emblem->getFilename());
-                $stripped_filename = substr($current_filename, strpos($current_filename, "_") + 1);
-                $stripped_filename = str_replace(".png", "", $stripped_filename);
-                if($solo_tier == $stripped_filename) {
-                    $emblem_path = $emblem->getRealPath();
-                }
-                if($flex_tier == $stripped_filename) {
-                    $flex_emblem_path = $emblem->getRealPath();
-                }
-            }
-        
-            $emblem_path = "." . str_replace(public_path(), "", $emblem_path);
-            $flex_emblem_path = "." . str_replace(public_path(), "", $flex_emblem_path);    
-            
+            $emblems = $this->get_emblems($ranks);
             
             // Fetching from MongoDB
             $matchHist = MatchHistory::where('match.metadata.participants', '=', $user->puuid)
@@ -96,14 +85,6 @@ class NavigationController extends Controller
                 $max_damage_dealt = 0;
                 $max_damage_taken = 0;
                 $max_damage_mitigated = 0;
-    
-                $users_damage_dealt = 0;
-                $users_damage_taken = 0;
-                $users_damage_mitigated = 0;
-
-                $user_time_spent_alive = 0;
-                $user_cc_time = 0;
-
                 $longest_time_spent_alive = 0;
                 $highest_cc_time = 0;
 
@@ -145,66 +126,18 @@ class NavigationController extends Controller
                     $participant->enemyMissingPings +  $participant->enemyVisionPings +  $participant->getBackPings +  $participant->holdPings + $participant->needVisionPings + $participant->onMyWayPings + 
                     $participant->pushPings + $participant->visionClearedPings;
 
-                    // Get runes from runes_reforged json 
+                
                     if($user->name == $participant->summonerName) {
-                        $runes = $participant->perks;
-                        $primary_rune_id = $runes->styles[0]->selections[0]->perk;
-                      
-                        foreach($runesDecoded as $rune) {
-                            if($runes->styles[0]->style == $rune->id) { 
-                                foreach($rune->slots[0]->runes as $major_rune) {
-                                    if($major_rune->id == $primary_rune_id) {
-                                        $primary_rune = $major_rune;
-                                    }
-                                }
-                            } 
-                            if($runes->styles[1]->style == $rune->id) {  
-                                $secondary_rune = $rune;
-                            }
-                        }
-                        $data->info->primary_rune = $primary_rune;
-                        $data->info->secondary_rune = $secondary_rune;
+                        $player = $participant;
 
-                        // Get summoner spell image from summoner json 
-                        foreach($summonersDecoded->data as $summoner) {
-                            if($summoner->key == $participant->summoner1Id) {
-                                $data->info->primary_summoner = $summoner->image->full;
-                            }
-                            if($summoner->key == $participant->summoner2Id) {
-                                $data->info->secondary_summoner = $summoner->image->full;
-                            }
-                        }
-                        // Get users statstics for game
-                        $users_damage_dealt =  $participant->totalDamageDealtToChampions;
-                        $users_damage_taken = $participant->totalDamageTaken;
-                        $users_damage_mitigated =  $participant->damageSelfMitigated;
-                        $user_time_spent_alive = $participant->longestTimeSpentLiving;
-                        $user_cc_time = $participant->timeCCingOthers;
-                        $user_role = $participant->individualPosition;
-                        
-                        $champ_exits_flag = false;
-                        foreach($champions as $champ) {
-                            if($champ->name == $participant->championName) {
-                                if($participant->win == true) {
-                                    $champ->wins += 1;
-                                } else {
-                                    $champ->losses += 1;
-                                }
-                                $champ_exits_flag = true;
-                            }                          
-                        }
-                        if($champ_exits_flag == false) {
-                            $current_champ = new StdClass();
-                            $current_champ->name = $participant->championName;
-                            if($participant->win == true) {
-                                $current_champ->wins = 1;
-                                $current_champ->losses = 0;
-                            } else {
-                                $current_champ->wins = 0;
-                                $current_champ->losses = 1;
-                            }
-                            $champions[] = $current_champ;
-                        }
+                        // Get runes
+                        $data->info->runes = $this->get_runes($participant->perks);
+
+                        // Get summoner spells
+                        $data->info->summoners = $this->get_summoners($participant->summoner1Id, $participant->summoner2Id);
+
+                        // Get champions played
+                        $champions = $this->get_champions($champions, $participant->championName, $participant->win);
                        
                         
                         // Get users total pings
@@ -212,8 +145,8 @@ class NavigationController extends Controller
                         $participant->enemyMissingPings +  $participant->enemyVisionPings +  $participant->getBackPings +  $participant->holdPings + $participant->needVisionPings + $participant->onMyWayPings + 
                         $participant->pushPings + $participant->visionClearedPings;
 
+                        // Get minions killed
                         $minions_killed = $participant->neutralMinionsKilled + $participant->totalMinionsKilled;
-                        
                     }
 
                     // Fixing champion name so they appear on data dragon link
@@ -234,9 +167,10 @@ class NavigationController extends Controller
                 }  
 
                 // Calculating precentage decrease for each instance of damage dealt, taken and mitigated
-                $data->info->damage_dealt_precentage = 100 - (($max_damage_dealt - $users_damage_dealt) / $max_damage_dealt * 100);
-                $data->info->damage_mitigated_precentage = 100 - (($max_damage_mitigated - $users_damage_mitigated) /  $max_damage_mitigated * 100);
-                $data->info->damage_taken_precentage = 100 - (($max_damage_taken - $users_damage_taken) / $max_damage_taken * 100);
+                $data->info->damage_dealt_precentage = 100 - (($max_damage_dealt - $player->totalDamageDealtToChampions) / $max_damage_dealt * 100);
+                $data->info->damage_mitigated_precentage = 100 - (($max_damage_mitigated - $player->damageSelfMitigated) /  $max_damage_mitigated * 100);
+                $data->info->damage_taken_precentage = 100 - (($max_damage_taken - $player->totalDamageTaken) / $max_damage_taken * 100);
+                
                 $data->info->minions_per_min =  round($minions_killed / ($data->info->gameDuration / 60),1);
                 $data->info->game_length = gmdate("i:s",$data->info->gameDuration);
 
@@ -248,7 +182,7 @@ class NavigationController extends Controller
                 }
                 
                 // Checking if user is a jungler or support as they don't recieve equal cs to laners
-                if($user_role != "JUNGLE" && $user_role != "UTILITY") {
+                if($player->individualPosition != "JUNGLE" && $player->individualPosition != "UTILITY") {
                     if ($data->info->minions_per_min < 5.5) {
                         $data->info->feedback[] = 'Low CS Per Min';
                     } elseif ($data->info->minions_per_min > 7) {
@@ -256,11 +190,11 @@ class NavigationController extends Controller
                     }
                 }
                 // Checking if user has highest crowd control score 
-                if($user_cc_time == $highest_cc_time) {
+                if($player->timeCCingOthers == $highest_cc_time) {
                     $data->info->feedback[] = 'Crowd Control King';
                 }
                 // Checking if user died the least in the game
-                if($user_time_spent_alive == $longest_time_spent_alive) {
+                if($player->longestTimeSpentLiving == $longest_time_spent_alive) {
                     $data->info->feedback[] = 'Unkillable!';
                 }
 
@@ -274,33 +208,40 @@ class NavigationController extends Controller
             }
            
         }
+        $league_patch = $this->league_patch;
+    
+
+        $key_values = array_column($champions, 'games_played'); 
+        array_multisort($key_values, SORT_DESC, $champions);
        
-        return view('player.search', compact("match_data", "ranks", "emblem_path", "user", "solo_rank", "flex_rank", "flex_emblem_path", "league_patch", "account_server", "runes", "champions"));
+        return view('player.search', compact("match_data", "ranks", "emblems", "user", "league_patch", "account_server", "runes", "champions"));
     }
 
     public function update(Request $request) {
 
-        $client = new GuzzleHttp\Client();
-        $api_key = env("API_KEY");
+        $this->client = new GuzzleHttp\Client();
+        $this->api_key = env("API_KEY");
         $start_count = 0;
         $account_server = $request->accountServer;
-    
+        // Region and Platform
         $server_details = $this->get_platform_and_region($account_server);
-
-        $stream = $client->get('https://' . $server_details->platform . '.api.riotgames.com/lol/summoner/v4/summoners/by-name/' . $request->username . '?api_key=' . $api_key);
+        // Fetch User details from API
+        $stream = $this->client->get('https://' . $server_details->platform . '.api.riotgames.com/lol/summoner/v4/summoners/by-name/' . $request->username . '?api_key=' . $this->api_key);
             
         $user = json_decode($stream->getBody()->getContents()); 
 
-        $stream = $client->get('https://' . $server_details->region . '.api.riotgames.com/lol/match/v5/matches/by-puuid/'  . $user->puuid . '/ids?start='.  $start_count . '&count=10&api_key=' . $api_key);
+        // Get lastest 10 Matches ID's from API
+        $stream = $this->client->get('https://' . $server_details->region . '.api.riotgames.com/lol/match/v5/matches/by-puuid/'  . $user->puuid . '/ids?start='.  $start_count . '&count=10&api_key=' . $this->api_key);
         $matches = json_decode($data = $stream->getBody()->getContents());
       
         foreach($matches as $match) {
             // Only update New Records     
             if(! MatchHistory::where('_id', '=', $match)->exists()) {
-
-                $stream =  $client->get('https://' . $server_details->region . '.api.riotgames.com/lol/match/v5/matches/'  . $match . '?api_key=' . $api_key);
+                // fetch full match details 
+                $stream =  $this->client->get('https://' . $server_details->region . '.api.riotgames.com/lol/match/v5/matches/'  . $match . '?api_key=' . $this->api_key);
                 $data = json_decode($stream->getBody()->getContents());
                 
+                // Push to database
                 $match_history = new MatchHistory();
                 $match_history->_id = $data->metadata->matchId;
                 $match_history->match = $data;
@@ -349,6 +290,111 @@ class NavigationController extends Controller
 
         return $server_details; 
     }
+
+    private function get_runes($participants_runes) {
+        
+        $runes = new StdClass();
+        $primary_rune_id = $participants_runes->styles[0]->selections[0]->perk;
+
+        foreach($this->runes_decoded as $rune) {
+            if($participants_runes->styles[0]->style == $rune->id) { 
+                foreach($rune->slots[0]->runes as $major_rune) {
+                    if($major_rune->id == $primary_rune_id) {
+                        $runes->primary_rune = $major_rune;
+                    }
+                }
+            } 
+            if($participants_runes->styles[1]->style == $rune->id) {  
+                $runes->secondary_rune = $rune;
+            }
+        }
+        
+        return $runes;
+    }
+
+    private function get_summoners($summoner1Id, $summoner2Id) {
+
+        $summoners = new StdClass();
+        // Get summoner spell image from summoner json 
+        foreach($this->summoners_decoded->data as $summoner) {
+            if($summoner->key == $summoner1Id) {
+                $summoners->primary_summoner = $summoner->image->full;
+            }
+            if($summoner->key == $summoner2Id) {
+               $summoners->secondary_summoner = $summoner->image->full;
+            }
+        }
+
+        return $summoners;
+    }
+
+    private function get_champions($champions, $champion_name, $win) {
+
+        $champ_exits_flag = false;
+        // Adding wins and losses to each champion
+        foreach($champions as $champ) {
+            if($champ['name'] == $champion_name) {
+
+                $array_id  = array_search($champ, $champions);
+            
+                if($win == true) {
+                    $champ['wins'] += 1;
+                } else {
+                    $champ['losses'] += 1;
+                }
+                $champ['games_played'] += 1;
+                $champions[$array_id] = $champ;
+                $champ_exits_flag = true;
+            }                          
+        }
+        // If champion dosen't exist add them to champion array
+        if($champ_exits_flag == false) {
+            $current_champ = [];
+            $current_champ['name'] = $champion_name;
+            if($win == true) {
+                $current_champ['wins'] = 1;
+                $current_champ['losses'] = 0;
+            } else {
+                $current_champ['wins'] = 0;
+                $current_champ['losses'] = 1;
+            }
+            $current_champ['games_played'] = 1;
+            $champions[] = $current_champ;
+        }
+
+        return $champions;
+    }
+
+    private function get_emblems($ranks){
+        
+        $emblems = new StdClass();
+        $emblems_array = File::files(public_path() . "/ranked-emblems/");
+        foreach($ranks as $rank) {
+            if($rank->queueType == "RANKED_SOLO_5x5") {
+                $emblems->solo_tier = strtolower($rank->tier);
+                $emblems->solo_rank = $rank;
+            } else {
+                $emblems->flex_tier = strtolower($rank->tier);
+                $emblems->flex_rank = $rank;
+            }
+        }
     
+        foreach($emblems_array as $emblem) {
+            $current_filename = strtolower($emblem->getFilename());
+            $stripped_filename = substr($current_filename, strpos($current_filename, "_") + 1);
+            $stripped_filename = str_replace(".png", "", $stripped_filename);
+            if($emblems->solo_tier == $stripped_filename) {
+                $emblems->emblem_path = $emblem->getRealPath();
+            }
+            if($emblems->flex_tier == $stripped_filename) {
+                $emblems->flex_emblem_path = $emblem->getRealPath();
+            }
+        }
+
+        $emblems->emblem_path = "." . str_replace(public_path(), "", $emblems->emblem_path);
+        $emblems->flex_emblem_path = "." . str_replace(public_path(), "", $emblems->flex_emblem_path);    
+        
+        return $emblems;
+    }
 
 }
