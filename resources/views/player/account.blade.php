@@ -16,6 +16,7 @@
         </div>
         <div class="col-sm" style="margin-left:1%">              
             <h2>{{$name}}</h2>
+            <a class="btn btn-primary" href="{{ route('update_feedback')}}">Update</a>
         </div>
     </div>
 
@@ -24,11 +25,23 @@
         </div>
 
         <div class="col-lg">
-            <b>From the last {{$match_count}} games the following statistics were identified: </b> 
-            <ul style="margin-top:1%" class="list-group">
-                @foreach($stat_text as $text)
-                    <li class="list-group-item"> {{$text}} </li>
-                    <hl>
+            <h2>From the last {{$match_count}} games the following statistics were identified: </h2> 
+            <ul style="margin-top:1%;text-align:center" class="list-group">
+          
+                @foreach($feedback as $current_feedback)
+                    @if($current_feedback->video_link)
+                        <li style="background-color:#FFCCCB" class="list-group-item"> 
+                    @else
+                        <li style="background-color:lightgreen" class="list-group-item"> 
+                    @endif
+                            <b style="text-transform: capitalize;">{{$current_feedback->text}}</b>
+                            @if($current_feedback->video_link)
+                                <div class="video" style="margin:3%">
+                                    <iframe width="560" height="315" src="{{$current_feedback->video_link}}"  frameborder="1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                                </div>
+                            @endif
+                        </li>
+                        <hl>
                 @endforeach
             </ul>   
         </div>
