@@ -29,4 +29,6 @@ Route::get('/update', [NavigationController::class, 'update'])->name('update');
 
 Route::get('/link_account', [NavigationController::class, 'link_account'])->name('link_account');
 
-Route::get('/get_details', [AccountController::class, 'get_details'])->name('get_details');
+Route::get('/get_details', [AccountController::class, 'get_details'])->name('get_details')->middleware('auth');
+
+Route::get('/update_feedback', [AccountController::class, 'update_feedback'])->name('update_feedback')->middleware('auth');
