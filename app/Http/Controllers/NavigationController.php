@@ -36,7 +36,6 @@ class NavigationController extends Controller
     public function search(Request $request)
     {
         $this->initiate_variables();
-        
       
         // Intializing necessary variables within one line to save line space
         $solo_tier = $stream = $flex_tier =  $flex_rank =  $solo_rank =  "";
@@ -218,9 +217,7 @@ class NavigationController extends Controller
     }
 
     public function update(Request $request) {
-
-        $this->client = new GuzzleHttp\Client();
-        $this->api_key = env("API_KEY");
+        $this->initiate_variables();
         $start_count = 0;
         $account_server = $request->accountServer;
         // Region and Platform
@@ -250,7 +247,6 @@ class NavigationController extends Controller
            
         }
         return $this->search($request);
-
     }
 
     public function link_account(Request $request) {

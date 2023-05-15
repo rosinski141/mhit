@@ -35,7 +35,6 @@ class AccountController extends Controller
     }
 
     public function get_details() {
-
         $this->init_variables();
 
         if(!$this->user->league_username) {
@@ -50,10 +49,8 @@ class AccountController extends Controller
         $league_patch = $this->league_patch;
 
         $match_count = $feedback[0]->matches_analyzed;
-     
        
         return view('player.account', compact("profileIcon", "name", "feedback", "level", "league_patch", "match_count"));
-    
     }
 
     private function get_platform($server) {
