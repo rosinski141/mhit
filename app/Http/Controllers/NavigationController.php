@@ -365,6 +365,12 @@ class NavigationController extends Controller
         
         $emblems = new StdClass();
         $emblems_array = File::files(public_path() . "/ranked-emblems/");
+        $emblems->flex_tier = "";
+        $emblems->solo_tier = "";
+        $emblems->solo_rank = "";
+        $emblems->flex_rank = "";
+        $emblems->flex_emblem_path = "";
+        $emblems->emblem_path = "";
         foreach($ranks as $rank) {
             if($rank->queueType == "RANKED_SOLO_5x5") {
                 $emblems->solo_tier = strtolower($rank->tier);

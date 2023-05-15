@@ -22,6 +22,11 @@ class AccountController extends Controller
     private $server_details;
     private $userdata; 
 
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
     private function init_variables() {
         $this->client = new GuzzleHttp\Client(['http_errors' => false]);
         $this->api_key = env("API_KEY");
@@ -36,7 +41,6 @@ class AccountController extends Controller
 
     public function get_details() {
         $this->init_variables();
-
         if(!$this->user->league_username) {
             return redirect()->back()->with('error', 'No account has been claimed to this user');
         }
