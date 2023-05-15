@@ -32,6 +32,9 @@ class AccountController extends Controller
         $this->api_key = env("API_KEY");
         $this->league_patch = env("LEAGUE_PATCH");
         $this->user = Auth::user();
+        if(!$this->user->league_username) {
+            return redirect()->back()->with('error', 'No account has been claimed to this user');
+        }
         $server_details = $this->get_platform($this->user->league_server);
 
         $stream = $this->client->get('https://' . $server_details->platform . '.api.riotgames.com/lol/summoner/v4/summoners/by-name/' . $this->user->league_username . '?api_key=' . $this->api_key);
@@ -51,8 +54,10 @@ class AccountController extends Controller
         $name = $this->userdata->name;
         $level = $this->userdata->summonerLevel;
         $league_patch = $this->league_patch;
-
-        $match_count = $feedback[0]->matches_analyzed;
+        $match_count = 0;
+        if(count($feedback) != 0) {
+            $match_count = $feedback[0]->matches_analyzed;
+        }
        
         return view('player.account', compact("profileIcon", "name", "feedback", "level", "league_patch", "match_count"));
     }
